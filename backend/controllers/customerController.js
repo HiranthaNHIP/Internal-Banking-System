@@ -1,0 +1,40 @@
+const database = require("../database");
+
+//get all customer details
+exports.getCustomers = (request, response) => {
+    //sql query to retrieve all customers
+    const sql_query = `SELECT * FROM customer`;
+
+    //execute the sql query
+    database.query(sql_query, (error, results) =>{
+        //if there is a server error
+        if(error){
+            return response.status(500).json({message: "Error retrieving customers, server error", error: error});
+        }
+        //if no results are found
+        if(results.length === 0){
+            return response.status(404).json({message: "No customers found"});
+        }
+        const customers = results;  //this is the list of customers
+        return response.status(200).json({customers: customers});
+    });
+}
+
+//get customer details by NIC
+exports.getCustomerByNic = (request, response) =>{
+    //sql query to get customer details by NIC
+    const sql_query = `SELECT * FROM customer WHERE NIC = ?`;
+
+    //execute the sql query
+    database.query(sql_query, [request.params.NIC], (error, results) =>{
+        if(error){
+            return response.status(500).json({message: "Error retreiving customer details, server error", error:error});
+        }
+        if(results.length === 0){
+            return response.status(404).json({message: "No customer found with the given NIC"});
+        }
+
+        const customer = results[0];
+        return response.status(200).json({customer: customer});
+    });
+}
