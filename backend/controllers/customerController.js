@@ -31,7 +31,7 @@ exports.getCustomerByNic = (request, response) =>{
             return response.status(500).json({message: "Error retreiving customer details, server error", error:error});
         }
         if(results.length === 0){
-            return response.status(404).json({message: "No customer found with the given NIC"});
+            return response.status(404).json({message: "No customer found with the given NIC", customer: results});
         }
         // Fetch the last account number in the bankaccount table
         const max_account_no = 'SELECT MAX(Account_no) as max_account_no FROM bankaccount';

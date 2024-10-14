@@ -1,7 +1,7 @@
 //Require all the node modules to create the server
 const express = require("express");
 const cors = require("cors");
-const bodyParer = require("body-parser");
+const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 
 //make the server use express.js
@@ -10,7 +10,7 @@ app.use(express.json());
 
 //configure the server to use cors, body-parser and dotenv file
 app.use(cors());
-app.use(bodyParer.json());
+app.use(bodyParser.json());
 dotenv.config();
 
 //require the connection to the database
