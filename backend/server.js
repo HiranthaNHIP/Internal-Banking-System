@@ -21,7 +21,8 @@ const authentication_routes = require("./routes/authenticationRoutes");
 const customer_routes = require("./routes/customerRoutes");
 const account_routes = require("./routes/accountRoutes");
 const branch_routes = require("./routes/branchRoutes");
-const transaction_routes = require("./routes/transactionRoutes");
+const transaction_routes = require("./routes/transactionRoute");
+const accountTypes_routes = require("./routes/accountTypesRoute");
 
 //Use the important routes
 app.get("/", (request, response) =>{
@@ -37,6 +38,8 @@ app.use("/accounts", account_routes);
 app.use("/branches", branch_routes);
 //use the transaction routes
 app.use("/transactions", transaction_routes);
+//use the account types routes
+app.use("/accountTypes", accountTypes_routes);
 
 
 //console log the port the backend server is running on

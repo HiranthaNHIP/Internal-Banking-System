@@ -1,10 +1,11 @@
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const database = require("../database");
 
 //register function for employees
 exports.login = (request, response) => {
     //retrieve username and password from the request body
-    const { username, password } = request.body;
+    const { username, password, reCaptcha } = request.body;
 
     //sql query to select all employees with the given username and password
     const sql_query = `SELECT * FROM employees WHERE username = ?`;

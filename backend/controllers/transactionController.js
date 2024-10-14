@@ -1,13 +1,12 @@
-const db = require('../config/db'); // MySQL database connection
+const db = require('../database'); // MySQL database connection
 
 
  // Get account numbers for a given NIC.
-
 exports.getAccountsByNIC = (request, response) => {
   const { NIC } = request.params;
   const sql = `SELECT account_no FROM bank_accounts WHERE customer_id = (SELECT CustomerID FROM customers WHERE NIC = ?)`;
 
-  db.query(sql, [nic], (err, results) => {
+  db.query(sql, [NIC], (err, results) => {
     if (err) return response.status(500).send({ error: 'Database Error' });
     if (results.length === 0) return response.status(404).send({ error: 'No accounts found for the given NIC' });
     response.send({ accountNumbers: results.map(row => row.account_no) });
