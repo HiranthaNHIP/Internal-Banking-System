@@ -6,12 +6,10 @@ const dotenv = require("dotenv");
 
 //make the server use express.js
 const app = express();
-app.use(express.json());
-
-//configure the server to use cors, body-parser and dotenv file
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 dotenv.config();
+app.use(bodyParser.json());
 
 //require the connection to the database
 require("./database");

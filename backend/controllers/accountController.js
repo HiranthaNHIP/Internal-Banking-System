@@ -48,18 +48,17 @@ exports.getAccountByNumber = (request, response) =>{
 
 exports.getNextAccountNumber = (request, response) => {
     // Fetch the last account number in the bankaccount table
-    const max_account_no = 'SELECT MAX(Account_no) as max_account_no FROM bankaccount';
+    const sql_query = 'SELECT MAX(Account_no) as max_account_no FROM bankaccount';
 
-    database.query(max_account_no, (account_error, account_result) => {
+    database.query(sql_query, (account_error, account_result) => {
         if (account_error) {
             return response.status(500).json({ message: "Error retrieving the last account number", error: account_error });
         }
-        console.log(account_result);
         
         // Get the last account number or default to 0 if there are no accounts
         const last_account_no = account_result[0].max_account_no || 1000;
         const next_account_no = last_account_no + 1;
-
+        
         return response.status(200).json({ next_account_no: next_account_no });
     });
 };
