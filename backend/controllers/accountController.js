@@ -28,7 +28,7 @@ exports.getAccount = (request, response) =>{
 exports.getAccountByNumber = (request, response) =>{
     //write an sql query to get all account details
     const sql_query = `SELECT * FROM bankaccount WHERE Account_no = ?`;
-
+    
     //execute the sql query
     database.query(sql_query, [request.params.account_no], (error, results) => {
         //if database error occurs
@@ -63,121 +63,110 @@ exports.getNextAccountNumber = (request, response) => {
     });
 };
 
-//create a new account
+// Create a new account
 exports.createAccount = (request, response) => {
     // Get the values from the request body
-    const { NIC, account_type_id, interest_rate, customer_name, address, DOB, Tel, Gender, date_opened, branch_id, employee_id } = request.body;
+    const { NIC, account_no, account_type_id, interest_rate, customer_name, address, DOB, tel_no, gender, signature, date_opened, branch_id, employee_id } = request.body;
 
-    database.getConnection((error, connection) => {
-        if(error){
-            return response.status(500).json({ message: "There has been a database error, unable to create a connection" });
+    let customerId;
+    let newCustomerId;
+
+    // Step 1: Check if the customer already exists
+    const checkCustomerQuery = `SELECT CustomerID FROM customer WHERE NIC = ?`;
+    database.query(checkCustomerQuery, [NIC], (error, customerResults) => {
+        if (error) {
+            return response.status(500).json({ message: 'Error checking customer', error: error.message });
         }
 
-        connection.beginTransaction((error) => {
-            if(error){
-                return response.status(500).json({ message: "Failed to start transaction", error: error });
+        if (customerResults.length > 0) {
+            // Customer exists, retrieve their CustomerID
+            customerId = customerResults[0].CustomerID;
+            createBankAccount(customerId); // Proceed to create the bank account
+        } else {
+            // Step 2: Create a new customer if the NIC does not exist
+            const getLastCustomerIdQuery = `SELECT CustomerID FROM customer ORDER BY CustomerID DESC LIMIT 1`;
+            database.query(getLastCustomerIdQuery, (error, lastCustomerResult) => {
+                if (error) {
+                    return response.status(500).json({ message: 'Error retrieving last customer ID', error: error.message });
+                }
+
+                // Generate the new CustomerID
+                if (lastCustomerResult.length > 0) {
+                    const lastCustomerId = lastCustomerResult[0].CustomerID;
+                    const numericPart = parseInt(lastCustomerId.replace('CUST', ''), 10); 
+                    newCustomerId = `CUST${(numericPart + 1).toString().padStart(3, '0')}`;
+                } else {
+                    newCustomerId = 'CUST001';
+                }
+
+                // Insert new customer into the database
+                const insertCustomerQuery = `INSERT INTO customer (CustomerID, Name, NIC, Address, DOB, tel_no, Gender, Signature) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+                database.query(insertCustomerQuery, [newCustomerId, customer_name, NIC, address, DOB, tel_no, gender, signature], (error, insertCustomerResult) => {
+                    if (error) {
+                        return response.status(500).json({ message: 'Error creating customer', error: error.message });
+                    }
+
+                    // Proceed to create the bank account for the new customer
+                    customerId = newCustomerId;
+                    createBankAccount(customerId);
+                });
+            });
+        }
+    });
+
+    // Step 3: Function to create a bank account
+    function createBankAccount(customerId) {
+        const insertBankAccountQuery = `INSERT INTO bankaccount (account_no, CustomerID, account_type_id, date_opened, interest_rate, balance, branch_id, employee_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+
+        database.query(insertBankAccountQuery, [account_no, customerId, account_type_id, date_opened, interest_rate, 0, branch_id, employee_id], (error, bankAccountInsertResult) => {
+            if (error) {
+                return response.status(500).json({ message: 'Error creating bank account', error: error.message });
             }
 
-            // Check if customer exists by NIC
-            const checkCustomerQuery = `SELECT CustomerID FROM customer WHERE NIC = ?`;
-            connection.query(checkCustomerQuery, [NIC], (error, customerResults) => {
-                if (error) {
-                    return connection.rollback(() => {
-                        return response.status(500).json({ message: "Failed to check customer details", error: error });
-                    });
-                }
-
-                let customerId;
-
-                if (customerResults.length > 0) {
-                    // Customer exists, get their CustomerID
-                    customerId = customerResults[0].CustomerID;
-                } else {
-                    // Customer does not exist, so we need to insert new customer details
-
-                    // Get the last CustomerID and generate the new one
-                    const getLastCustomerIdQuery = `SELECT CustomerID FROM customer ORDER BY CustomerID DESC LIMIT 1`;
-                    connection.query(getLastCustomerIdQuery, (error, lastCustomerResult) => {
-                        if (error) {
-                            return connection.rollback(() => {
-                                return response.status(500).json({ message: "Failed to get customer id", error: error });
-                            });
-                        }
-
-                        let newCustomerId;
-                        if (lastCustomerResult.length > 0) {
-                            const lastCustomerId = lastCustomerResult[0].CustomerID;
-                            const numericPart = parseInt(lastCustomerId.replace('CUST', ''), 10); // Get numeric part (e.g., 005)
-                            newCustomerId = `CUST${(numericPart + 1).toString().padStart(3, '0')}`; // Increment and format (e.g., CUST006)
-                        } else {
-                            newCustomerId = 'CUST001'; // First customer if no records exist
-                        }
-
-                        // Insert new customer details
-                        const insertCustomerQuery = `INSERT INTO customer (CustomerID, Name, NIC, Address, DOB, tel_no, Gender) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-                        connection.query(insertCustomerQuery, [newCustomerId, customer_name, NIC, address, DOB, Tel, Gender], (error, customerInsertResult) => {
-                            if (error) {
-                                return connection.rollback(() => {
-                                    return response.status(500).json({ message: "Failed to insert customer details", error: error });
-                                });
-                            }
-
-                            // Set customerId for account creation
-                            customerId = newCustomerId;
-
-                            // Proceed to create the account
-                            createBankAccount();
-                        });
-                    });
-                }
-
-                // If customer exists, create bank account
-                if (customerId) {
-                    createBankAccount();
-                }
-
-                // Function to handle bank account creation
-                function createBankAccount() {
-                    // Get the last account number and generate the new one
-                    const getLastAccountNoQuery = `SELECT account_no FROM bankaccount ORDER BY account_no DESC LIMIT 1`;
-                    connection.query(getLastAccountNoQuery, (error, accountResults) => {
-                        if (error) {
-                            return connection.rollback(() => {
-                                return response.status(500).json({ message: "Failed to retrieve last Account Number", error: error });
-                            });
-                        }
-
-                        let newAccountNo;
-                        if (accountResults.length > 0) {
-                            newAccountNo = accountResults[0].account_no + 1; // Increment the last account number
-                        } else {
-                            newAccountNo = 1001; // First account number if no records exist
-                        }
-
-                        // Insert into BankAccount table
-                        const insertBankAccountQuery = `INSERT INTO bankaccount (account_no, CustomerID, account_type_id, date_opened, interest_rate, balance, branch_id, employee_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-                        connection.query(insertBankAccountQuery, [newAccountNo, customerId, account_type_id, date_opened, interest_rate, 0, branch_id, employee_id], (error, bankAccountInsertResult) => {
-                            if (error) {
-                                return connection.rollback(() => {
-                                    return response.status(500).json({ message: "Failed to create bank account", error: error });
-                                });
-                            }
-
-                            // Commit the transaction if everything is successful
-                            connection.commit((err) => {
-                                if (err) {
-                                    return connection.rollback(() => {
-                                        return response.status(500).json({ message: "Transaction commit failed", error: err });
-                                    });
-                                }
-                                return response.status(200).json({ message: "Customer and Bank Account created successfully", customerId: customerId, accountNumber: newAccountNo });
-                            });
-                        });
-                    });
-                }
+            // Respond with success message
+            return response.status(200).json({
+                message: 'Bank account created successfully',
+                customerId,
+                accountNumber: account_no
             });
         });
+    }
+};
+
+// Get account details to display in withdraw and deposit page
+exports.getWithdrawAndDepositDetails = (request, response) => {
+    const sql_query = `SELECT ba.Account_no, ba.balance, c.Name, c.NIC, c.Signature, at.account_type_name FROM bankaccount ba JOIN customer c ON ba.CustomerID = c.CustomerID JOIN accounttype at ON ba.account_type_id = at.account_type_id WHERE ba.Account_no = ?;`;
+                       
+    const accountNo = request.params.account_no; // Assuming you're getting Account_no from request parameters
+
+    database.query(sql_query, [accountNo], (error, results) => {
+        if (error) {
+            return response.status(500).json({ message: 'Error retrieving account details', error: error.message });
+        }
+
+        if (results.length > 0) {
+            const imageBuffer = results[0].Signature;
+
+            // Convert imageBuffer to Base64 string
+            const base64Image = Buffer.from(imageBuffer).toString('base64');
+
+            // Prepare response with Base64 image
+            const accountDetails = {
+                Account_no: results[0].Account_no,
+                balance: results[0].balance,
+                Name: results[0].Name,
+                NIC: results[0].NIC,
+                account_type_name: results[0].account_type_name,
+                Signature: `data:image/jpeg;base64,${base64Image}` // Adjust MIME type if necessary
+            };
+
+            return response.status(200).json(accountDetails);
+        } else {
+            return response.status(404).json({ message: 'No account details found for the given Account_no' });
+        }
     });
 };
+
+
 
 

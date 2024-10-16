@@ -5,74 +5,95 @@ const axios = require('axios');
 const dotenv = require("dotenv");
 dotenv.config();
 
-let loginAttempts = {}; // Store login attempts and timeouts
-
 //register function for employees
 exports.login = async (request, response) => {
     //retrieve username and password from the request body
     const { username, password, recaptchaToken } = request.body;
 
-    try{
+    // Manually validate the input fields
+    if(!username || !password || !recaptchaToken){
+        return response.status(400).json({ message: 'Invalid Username or Password!' });
+    }
+    if (!username || typeof username !== 'string' || username.trim() === '') {
+        return response.status(400).json({ message: 'Invalid Username!' });
+    }
+    if (!password || typeof password !== 'string' || password.trim() === '') {
+        return response.status(400).json({ message: 'Invalid Password' });
+    }
+    if (!recaptchaToken || typeof recaptchaToken !== 'string' || recaptchaToken.trim() === '') {
+        return response.status(400).json({ message: 'reCAPTCHA token is required' });
+    }
+
+    try {
         // Verify reCAPTCHA
-        const secretKey = process.env.RECAPTCHA_SECRET_KEY; // Get your reCAPTCHA secret key from environment variables
+        const secretKey = process.env.RECAPTCHA_SECRET_KEY; 
         const recaptcha_response = await axios.post(`https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptchaToken}`);
         const { success } = recaptcha_response.data;
-
+    
         if (!success) {
             return response.status(400).json({ msg: 'reCAPTCHA verification failed' });
         }
-
-        //sql query to select all employees with the given username and password
+    
+        // SQL query to select the user with the given username
         const sql_query = `SELECT * FROM employees WHERE Username = ?`;
-
-        //execute the sql query
-        database.query(sql_query, [username], async (error, results) =>{
-            //if there is an error, return the error
-            if(error){
-                return response.status(500).json({message: "Database error", error: error});
+    
+        // Execute the SQL query
+        database.query(sql_query, [username], async (error, results) => {
+            if (error) {
+                return response.status(500).json({ message: "Database error", error: error });
             }
-            //check if there are any results, 0 results means that the username or password doesnt exist
-            if(results.length ===0){
-                return response.status(401).json({message: "Invalid username or password"});
+    
+            if (results.length === 0) {
+                return response.status(401).json({ message: "Invalid username or password" });
             }
-            const user = results[0];    //this is the user we found from the database
-            // Check login attempts and lock duration
-            const userAttempts = loginAttempts[username] || { count: 0, lockedUntil: null };
-            if (userAttempts.lockedUntil && new Date() < userAttempts.lockedUntil) {
-                return response.status(429).json({ message: `Account locked. Try again after ${Math.ceil((userAttempts.lockedUntil - new Date()) / 1000)} seconds.` });
+    
+            const user = results[0];    
+            const isPasswordMatch = await bcrypt.compare(password, user.password); 
+    
+            if (!isPasswordMatch) {
+                return response.status(401).json({ message: "Invalid username or password!" });
             }
-            const isPasswordMatch = await bcrypt.compare(password, user.password); //check if the password matches
-            if(!isPasswordMatch){   //If the password is not matching
-                userAttempts.count++;
-                if (userAttempts.count >= 3) {
-                    userAttempts.lockedUntil = new Date(Date.now() + (userAttempts.count === 3 ? 30000 : 60000)); // Lock for 30 seconds then increase to 1 minute
+    
+            // Query to get the branch name of the user based on the branch_id
+            const branchQuery = `SELECT branch_name FROM bankbranch WHERE branch_id = ?`;
+            database.query(branchQuery, [user.branch_id], (branchError, branchResults) => {
+                if (branchError) {
+                    return response.status(500).json({ message: "Database error", error: branchError });
                 }
-                loginAttempts[username] = userAttempts;
-                return response.status(401).json({message: "Invalid username or password!"});
-            }
-            // If credentials are correct, generate a JWT token
-            const payload = {
-                user: {
-                    employee_id: user.employee_id,
-                    branch_id: user.branch_id,
-                    first_name: user.first_name,
-                    position: user.position,
-                },
-            };
-            jwt.sign(
-                payload,
-                process.env.JWT_SECRET_KEY,
-                { expiresIn: '1h' },
-                (err, token) => {
-                    if (err) throw err;
-
-                    // Send the response with the generated token
-                    response.status(200).json({ message: "Login successful", token: token, user: payload.user });
-
-                    // Reset login attempts on successful login
-                    delete loginAttempts[username];
+    
+                if (branchResults.length === 0) {
+                    return response.status(404).json({ message: "Branch not found" });
                 }
-            );
+    
+                const branch_name = branchResults[0].branch_name;
+    
+                // Prepare the payload with user and branch details
+                const payload = {
+                    user: {
+                        employee_id: user.employee_id,
+                        branch_id: user.branch_id,
+                        branch_name: branch_name, // Add the branch name to the payload
+                        first_name: user.first_name,
+                        position: user.position,
+                    },
+                };
+    
+                // Generate the JWT token
+                jwt.sign(
+                    payload,
+                    process.env.JWT_SECRET_KEY,
+                    { expiresIn: '1h' },
+                    (err, token) => {
+                        if (err) throw err;
+    
+                        // Send the response with the generated token
+                        response.status(200).json({ message: "Login successful", token: token, user: payload.user });
+    
+                        // Reset login attempts on successful login
+                        delete loginAttempts[username];
+                    }
+                );
+            });
         });
     }catch(error){
         console.error(error.message);
