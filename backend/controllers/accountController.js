@@ -66,7 +66,13 @@ exports.getNextAccountNumber = (request, response) => {
 // Create a new account
 exports.createAccount = (request, response) => {
     // Get the values from the request body
-    const { NIC, account_no, account_type_id, interest_rate, customer_name, address, DOB, tel_no, gender, signature, date_opened, branch_id, employee_id } = request.body;
+    const { NIC, account_no, account_type_id, interest_rate, customer_name, address, DOB, tel_no, gender, date_opened, branch_id, employee_id } = request.body;
+    console.log('Request Body:', request.body);
+    console.log('Uploaded File:', request.file);
+
+    if (!signature) {
+        return response.status(400).json({ message: 'No file uploaded' });
+    }
 
     let customerId;
     let newCustomerId;
@@ -131,7 +137,7 @@ exports.createAccount = (request, response) => {
             });
         });
     }
-};
+}; // Make sure this is the final closing brace of the `exports.createAccount` function.
 
 // Get account details to display in withdraw and deposit page
 exports.getWithdrawAndDepositDetails = (request, response) => {
@@ -144,26 +150,18 @@ exports.getWithdrawAndDepositDetails = (request, response) => {
             return response.status(500).json({ message: 'Error retrieving account details', error: error.message });
         }
 
-        if (results.length > 0) {
-            const imageBuffer = results[0].Signature;
-
-            // Convert imageBuffer to Base64 string
-            const base64Image = Buffer.from(imageBuffer).toString('base64');
-
-            // Prepare response with Base64 image
-            const accountDetails = {
-                Account_no: results[0].Account_no,
-                balance: results[0].balance,
-                Name: results[0].Name,
-                NIC: results[0].NIC,
-                account_type_name: results[0].account_type_name,
-                Signature: `data:image/jpeg;base64,${base64Image}` // Adjust MIME type if necessary
-            };
-
-            return response.status(200).json(accountDetails);
-        } else {
-            return response.status(404).json({ message: 'No account details found for the given Account_no' });
+        if (results.length === 0) {
+            return response.status(404).json({ message: "Account details not found"});
         }
+        const accountDetails = {
+            Account_no: results[0].Account_no,
+            balance: results[0].balance,
+            Name: results[0].Name,
+            NIC: results[0].NIC,
+            Signature: results[0].Signature,
+            account_type_name: results[0].account_type_name,
+        }
+        response.status(200).send({accounts: accountDetails}); // Send the image blob as the response
     });
 };
 
