@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const transactionController = require('../controllers/transactionController');
 
+//route to get all transactions
+router.get('/transaction/:branchID', transactionController.getTransactionDetails);
+
 // Route to get account numbers by NIC
 router.get('/accounts/:NIC', transactionController.getAccountsByNIC);
 

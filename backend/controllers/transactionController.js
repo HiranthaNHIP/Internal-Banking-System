@@ -109,4 +109,23 @@ exports.withdrawAmount = (request, response) => {
   });
 };
 
+//Get customer and account details for a given account number.
+exports.getTransactionDetails = (request, response) => {
+  const sql = `SELECT transaction_id, Account_no, transaction_type, amount, transaction_date, employee_id, status FROM transaction WHERE branch_id = ?`;
+  console.log(request.params.branchID);
+  db.query(sql, [request.params.branchID], (err, results) => {
+    if (err) return response.status(500).json({ error: 'Database Error' });
+    if (results.length === 0) return response.status(404).json({ error: 'No details found for the given branch_id' });
+    // Add 'id' attribute to each transaction
+    const transactionsWithId = results.map((transaction, index) => ({
+      id: index, // Start from 1, or you can use index if you want zero-based indexing
+      ...transaction
+    }));
+    return response.status(200).json({ transactions: transactionsWithId });
+  });
+};
 
+
+
+
+	 	 	 	 	 	 	 	 	

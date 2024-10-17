@@ -54,3 +54,34 @@ exports.getCustomerByNic = (request, response) =>{
         });
     });
 }
+
+//get customer details by NIC
+exports.getCustomerAndAccountByNic = (request, response) =>{
+    //sql query to get customer details by NIC
+    const sql_query = `SELECT C.CustomerID, C.Name, C.NIC, C.Address, C.DOB, C.tel_no, C.Gender, C.Signature, A.Account_no, A.date_opened, A.balance, AT.account_type_name FROM bankaccount A JOIN customer C ON C.CustomerID = A.CustomerID JOIN accounttype ON A.account_type_id = AT.account_type_id WHERE C.NIC = ?`;
+
+    //execute the sql query
+    database.query(sql_query, [request.params.NIC], (error, results) =>{
+        if(error){
+            return response.status(500).json({message: "Error retreiving customer details, server error", error:error});
+        }
+        if(results.length === 0){
+            return response.status(404).json({message: "No customer found with the given NIC", customer: results});
+        }
+        const profileDetails = {
+            CustomerID: results[0].CustomerID,
+            Name: results[0].Name,
+            NIC: results[0].NIC,
+            Address: results[0].Address,
+            DOB: results[0].DOB,
+            tel_no: results[0].tel_no,
+            Gender: results[0].Gender,
+            Signature: results[0].Signature,
+            Account_no: results[0].Account_no,
+            date_opened: results[0].date_opened,
+            balance: results[0].balance,
+            account_type_name: results[0].account_type_name,
+        }
+        response.status(200).send({profile: profileDetails});
+    });
+}
