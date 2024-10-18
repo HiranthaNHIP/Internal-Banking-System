@@ -111,6 +111,7 @@ const account_routes = require("./routes/accountRoutes");
 const branch_routes = require("./routes/branchRoutes");
 const transaction_routes = require("./routes/transactionRoute");
 const accountTypes_routes = require("./routes/accountTypesRoute");
+const employee_routes = require("./routes/employeeRoutes");
 
 //Use the important routes
 app.get("/", (request, response) =>{

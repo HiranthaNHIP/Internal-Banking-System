@@ -102,29 +102,43 @@ exports.login = async (request, response) => {
 }
 
 
-//register function for new employees
-exports.register = (request, response) =>{
-    //retrieve the values from the request body
-    const { employee_id, branch_id, first_name, last_name, Address, Gender, email, DOB, position, Username, password, phone_number, dateof_joined } = request.body;
-    
-    // Hash the password before saving to the database
-    bcrypt.hash(password, 10, (err, hash) => {
-        if (err) {
-            return response.status(500).json({ message: "Error hashing password", error: err });
+// Register function for new employees
+exports.register = (request, response) => {
+    // Retrieve the values from the request body
+    const { branch_id, first_name, last_name, Address, Gender, email, DOB, position, Username, password, phone_number, dateof_joined } = request.body;
+    console.log("Request Body:", request.body);
+
+    // First, get the last employee_id
+    const getLastEmployeeIdQuery = `SELECT MAX(employee_id) AS lastId FROM employees`;
+    database.query(getLastEmployeeIdQuery, (error, results) => {
+        if (error) {
+            return response.status(500).json({ message: "Error retrieving the last employee ID", error: error });
         }
+        console.log(results);
+        // Get the last employee_id and increment it
+        const lastId = results[0].lastId || 0; // If no employees exist, start from 0
+        const newEmployeeId = lastId + 1;
 
-        // Insert query to insert the new employee into the employee table
-        const sql_query = `INSERT INTO employees (employee_id, branch_id, first_name, last_name, Address, Gender, email, DOB, position, Username, password, phone_number, dateof_joined) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
-        // Execute the SQL query
-        database.query(sql_query, [employee_id, branch_id, first_name, last_name, Address, Gender, email, DOB, position, Username, hash, phone_number, dateof_joined], (error, results) => {
-            // If there is a server error
-            if (error) {
-                return response.status(500).json({ message: "Error registering the user, please try again later", error: error });
-            } else {
-                // If the user is successfully registered
-                return response.status(201).json({ message: "User is registered successfully" });
+        // Hash the password before saving to the database
+        bcrypt.hash(password, 10, (err, hash) => {
+            if (err) {
+                return response.status(500).json({ message: "Error hashing password", error: err });
             }
+
+            // Insert query to insert the new employee into the employee table
+            const sql_query = `INSERT INTO employees (employee_id, branch_id, first_name, last_name, Address, Gender, email, DOB, position, Username, password, phone_number, dateof_joined) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+            // Execute the SQL query
+            database.query(sql_query, [newEmployeeId, branch_id, first_name, last_name, Address, Gender, email, DOB, position, Username, hash, phone_number, dateof_joined], (error, results) => {
+                // If there is a server error
+                if (error) {
+                    return response.status(500).json({ message: "Error registering the user, please try again later", error: error });
+                } else {
+                    // If the user is successfully registered
+                    return response.status(201).json({ message: "User is registered successfully" });
+                }
+            });
         });
     });
 }
+
