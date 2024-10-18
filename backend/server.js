@@ -5,10 +5,13 @@ const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 const multer = require('multer'); // For handling file uploads
 const path = require('path');
+const helmet = require('helmet');
 
 //make the server use express.js
 const app = express();
 app.use(cors());
+app.use(helmet());
+
 // Increase the payload size limit
 app.use(express.json()); // Adjust '10mb' to a value suitable for your needs
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
