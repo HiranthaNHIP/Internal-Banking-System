@@ -88,9 +88,6 @@ exports.login = async (request, response) => {
     
                         // Send the response with the generated token
                         response.status(200).json({ message: "Login successful", token: token, user: payload.user });
-    
-                        // Reset login attempts on successful login
-                        delete loginAttempts[username];
                     }
                 );
             });

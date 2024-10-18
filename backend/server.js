@@ -129,6 +129,8 @@ app.use("/branches", branch_routes);
 app.use("/transactions", transaction_routes);
 //use the account types routes
 app.use("/accountTypes", accountTypes_routes);
+//use the employee routes
+app.use("/employees", employee_routes);
 
 
 //console log the port the backend server is running on
