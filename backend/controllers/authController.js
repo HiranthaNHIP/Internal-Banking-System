@@ -67,7 +67,29 @@ exports.login = async (request, response) => {
     
                 const branch_name = branchResults[0].branch_name;
     
-                // Prepare the payload with user and branch details
+                // // Prepare the payload with user and branch details
+                // const payload = {
+                //     user: {
+                //         employee_id: user.employee_id,
+                //         branch_id: user.branch_id,
+                //         branch_name: branch_name, // Add the branch name to the payload
+                //         first_name: user.first_name,
+                //         position: user.position,
+                //     },
+                // };
+    
+                // // Generate the JWT token
+                // jwt.sign(
+                //     payload,
+                //     process.env.JWT_SECRET_KEY,
+                //     { expiresIn: '1h' },
+                //     (err, token) => {
+                //         if (err) throw err;
+    
+                //         // Send the response with the generated token
+                //         response.status(200).json({ message: "Login successful", token: token, user: payload.user });
+                //     }
+                // );
                 const payload = {
                     user: {
                         employee_id: user.employee_id,
@@ -77,15 +99,15 @@ exports.login = async (request, response) => {
                         position: user.position,
                     },
                 };
-    
-                // Generate the JWT token
+                
+                // Generate the JWT token with a 10-second expiration
                 jwt.sign(
                     payload,
                     process.env.JWT_SECRET_KEY,
-                    { expiresIn: '1h' },
+                    { expiresIn: '1h' }, // Set expiration to 10 seconds for testing
                     (err, token) => {
                         if (err) throw err;
-    
+                
                         // Send the response with the generated token
                         response.status(200).json({ message: "Login successful", token: token, user: payload.user });
                     }
