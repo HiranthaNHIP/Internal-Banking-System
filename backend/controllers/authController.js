@@ -3,6 +3,8 @@ const jwt = require('jsonwebtoken');
 const database = require("../database");
 const axios = require('axios');
 const dotenv = require("dotenv");
+const logger = require('./logger');
+
 dotenv.config();
 
 //register function for employees
@@ -40,10 +42,12 @@ exports.login = async (request, response) => {
         // Execute the SQL query
         database.query(sql_query, [username], async (error, results) => {
             if (error) {
+                logger.authLogger.log("error", "Database error while logging in with username: " + username);
                 return response.status(500).json({ message: "Database error", error: error });
             }
     
             if (results.length === 0) {
+                logger.authLogger.log("error", "Invalid username or password while logging in with username: " + username);
                 return response.status(401).json({ message: "Invalid username or password" });
             }
     
@@ -51,6 +55,7 @@ exports.login = async (request, response) => {
             const isPasswordMatch = await bcrypt.compare(password, user.password); 
     
             if (!isPasswordMatch) {
+                logger.authLogger.log("error", "Password entered by user "+ username + "does not match");
                 return response.status(401).json({ message: "Invalid username or password!" });
             }
     
@@ -58,10 +63,12 @@ exports.login = async (request, response) => {
             const branchQuery = `SELECT branch_name FROM bankbranch WHERE branch_id = ?`;
             database.query(branchQuery, [user.branch_id], (branchError, branchResults) => {
                 if (branchError) {
+                    logger.authLogger.log("error", "Error while executing query to retreive branch name!");
                     return response.status(500).json({ message: "Database error", error: branchError });
                 }
     
                 if (branchResults.length === 0) {
+                    logger.authLogger.log("error", "Request for branch name for login returned no results");
                     return response.status(404).json({ message: "Branch not found" });
                 }
     
@@ -87,6 +94,7 @@ exports.login = async (request, response) => {
                 
                         // Send the response with the generated token
                         response.status(200).json({ message: "Login successful", token: token, user: payload.user });
+                        logger.authLogger.log("info", "User successfully logged in with employee_id: " + user.employee_id); 
                     }
                 );
             });
@@ -108,6 +116,7 @@ exports.register = (request, response) => {
     const getLastEmployeeIdQuery = `SELECT MAX(employee_id) AS lastId FROM employees`;
     database.query(getLastEmployeeIdQuery, (error, results) => {
         if (error) {
+            logger.authLogger.log("error", "Error retrieving the last employee ID");
             return response.status(500).json({ message: "Error retrieving the last employee ID", error: error });
         }
         console.log(results);
@@ -128,9 +137,11 @@ exports.register = (request, response) => {
             database.query(sql_query, [newEmployeeId, branch_id, first_name, last_name, Address, Gender, email, DOB, position, Username, hash, phone_number, dateof_joined], (error, results) => {
                 // If there is a server error
                 if (error) {
+                    logger.authLogger.log("error", "Error registering the user due to database error");
                     return response.status(500).json({ message: "Error registering the user, please try again later", error: error });
                 } else {
                     // If the user is successfully registered
+                    logger.authLogger.log("info", "User with name of "+ first_name+ " has successfully registered")
                     return response.status(201).json({ message: "User is registered successfully" });
                 }
             });

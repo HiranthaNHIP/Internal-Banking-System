@@ -1,0 +1,13 @@
+{"level":"info","message":"User successfully logged in with employee_id: 206","timestamp":"2024-10-19T02:53:15.823Z"}
+{"level":"info","message":"User successfully logged in with employee_id: 208","timestamp":"2024-10-19T03:17:34.867Z"}
+{"level":"info","message":"User successfully logged in with employee_id: 206","timestamp":"2024-10-19T03:19:51.543Z"}
+{"level":"info","message":"User successfully logged in with employee_id: 206","timestamp":"2024-10-19T03:24:41.314Z"}
+{"level":"info","message":"User successfully logged in with employee_id: 208","timestamp":"2024-10-19T03:29:44.807Z"}
+{"level":"info","message":"User with name of Thirandi has successfully registered","timestamp":"2024-10-19T03:30:49.865Z"}
+{"level":"info","message":"User successfully logged in with employee_id: 206","timestamp":"2024-10-19T03:32:09.194Z"}
+{"level":"info","message":"User successfully logged in with employee_id: 206","timestamp":"2024-10-19T03:54:54.813Z"}
+{"level":"info","message":"User successfully logged in with employee_id: 208","timestamp":"2024-10-19T03:59:36.627Z"}
+{"level":"info","message":"User with name of Liviru has successfully registered","timestamp":"2024-10-19T04:01:42.039Z"}
+{"level":"error","message":"Password entered by user hirantha.pdoes not match","timestamp":"2024-10-19T14:43:43.237Z"}
+{"level":"info","message":"User successfully logged in with employee_id: 206","timestamp":"2024-10-19T14:44:27.248Z"}
+{"level":"info","message":"User successfully logged in with employee_id: 208","timestamp":"2024-10-19T14:45:39.694Z"}

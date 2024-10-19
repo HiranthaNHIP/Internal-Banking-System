@@ -1,5 +1,6 @@
 //require the database
 const database = require("../database");
+const logger = require('./logger');
 
 //export the functions
 //get all account details
@@ -52,6 +53,7 @@ exports.getNextAccountNumber = (request, response) => {
 
     database.query(sql_query, (account_error, account_result) => {
         if (account_error) {
+            logger.accountLogger.log("error", "Database error where we can't retreive last account number");
             return response.status(500).json({ message: "Error retrieving the last account number", error: account_error });
         }
         
@@ -71,6 +73,7 @@ exports.createAccount = (request, response) => {
     console.log('Uploaded File:', request.file);
 
     if (!signature) {
+        logger.accountLogger.log("error", "No signature has been uploaded by the frontend");
         return response.status(400).json({ message: 'No file uploaded' });
     }
 
@@ -81,6 +84,7 @@ exports.createAccount = (request, response) => {
     const checkCustomerQuery = `SELECT CustomerID FROM customer WHERE NIC = ?`;
     database.query(checkCustomerQuery, [NIC], (error, customerResults) => {
         if (error) {
+            logger.accountLogger.log("error", "Database error where we can't retreive customer ID from NIC");
             return response.status(500).json({ message: 'Error checking customer', error: error.message });
         }
 
@@ -111,7 +115,7 @@ exports.createAccount = (request, response) => {
                     if (error) {
                         return response.status(500).json({ message: 'Error creating customer', error: error.message });
                     }
-
+                    logger.accountLogger.log("info", "Customer ID " + newCustomerId + " has been inserted successfully!");
                     // Proceed to create the bank account for the new customer
                     customerId = newCustomerId;
                     createBankAccount(customerId);
@@ -126,10 +130,12 @@ exports.createAccount = (request, response) => {
 
         database.query(insertBankAccountQuery, [account_no, customerId, account_type_id, date_opened, interest_rate, 0, branch_id, employee_id], (error, bankAccountInsertResult) => {
             if (error) {
+                logger.accountLogger.log("error", "Database error where we can't insert bank details");
                 return response.status(500).json({ message: 'Error creating bank account', error: error.message });
             }
 
             // Respond with success message
+            logger.accountLogger.log("info", "Successfully inserted new bank records");
             return response.status(200).json({
                 message: 'Bank account created successfully',
                 customerId,

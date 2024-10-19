@@ -7,6 +7,7 @@ const multer = require('multer'); // For handling file uploads
 const path = require('path');
 const helmet = require('helmet');
 
+
 //make the server use express.js
 const app = express();
 app.use(cors());
